@@ -8,49 +8,19 @@ from django.utils.translation import get_language
 
 @python_2_unicode_compatible
 class Word(models.Model):
-    def translation(self, language):
-        try:
-            return self.translations.get(language=language)
-        except WordTranslation.DoesNotExist:
-            return None
-
-    def __str__(self):
-        try:
-            return self.translations.get(language=get_language()).translation
-        except WordTranslation.DoesNotExist:
-            pass
-
-        try:
-            return self.translations \
-                       .get(language=settings.LANGUAGE_CODE).translation
-        except WordTranslation.DoesNotExist:
-            pass
-
-        return ""
-
-@python_2_unicode_compatible
-class WordTranslation(models.Model):
-    word = models.ForeignKey(Word, related_name='translations')
-    language = models.CharField(max_length=5, db_index=True)
-    translation = models.CharField(max_length=100, null=True, blank=False)
+    language = models.CharField(max_length=5)
+    word = models.CharField(max_length=100, null=False, blank=False)
     added_by = models.ForeignKey(User)
     added_at = models.DateTimeField(default=timezone.now)
 
-    def clean(self):
-        from django.core.exceptions import ValidationError
-
-        if self.translation is None or self.translation == '':
-            raise ValidationError('translation must not be empty',
-                                  code='translation-empty')
-
     def __str__(self):
-        return self.translation
+        return self.word
+
+    def __repr__(self):
+        return '<Word: {} ({})>'.format(self.word, self.language)
 
     class Meta:
-        unique_together = (
-            ('word', 'language'),
-            ('language', 'translation'),
-        )
+        unique_together = (('language', 'word'),)
 
 class Draw(models.Model):
     user = models.ForeignKey(User)

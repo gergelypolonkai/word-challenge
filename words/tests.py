@@ -7,63 +7,25 @@ from django.utils.dateparse import parse_duration
 from django.utils.translation import activate
 from django.test import TestCase, override_settings
 
-from .models import Word, WordTranslation, Draw, Work
+from .models import Word, Draw, Work
 
 class WordTest(TestCase):
     def setUp(self):
         user = User.objects.create_user(username='test', password='test')
-        self.word1 = Word.objects.create()
-        self.translation1 = WordTranslation.objects.create(
-            word=self.word1,
-            language='en-us',
-            translation='color',
-            added_by=user)
-        self.translation2 = WordTranslation.objects.create(
-            word=self.word1,
-            language='en-gb',
-            translation='colour',
-            added_by=user)
-        self.translation3 = WordTranslation.objects.create(
-            word=self.word1,
-            language='hu-hu',
-            translation='szín',
-            added_by=user)
+        self.word1 = Word.objects.create(language='en-us',
+                                         word='color',
+                                         added_by=user)
 
     def test_word_str(self):
-        with self.settings(LANGUAGE_CODE='en-us'):
-            self.assertEquals("color", self.word1.__str__())
-
-        with self.settings(LANGUAGE_CODE='en-gb'):
-            self.assertEquals('colour', self.word1.__str__())
-
-        activate('hu-hu')
-        self.assertEquals('szín', self.word1.__str__())
-
-        with self.settings(LANGUAGE_CODE='es-es'):
-            activate('is-is')
-            self.assertEquals('', self.word1.__str__())
-
-    def test_word_translation(self):
-        self.assertEquals('color', self.word1.translation('en-us').translation)
-        self.assertEquals('colour', self.word1.translation('en-gb').translation)
-        self.assertIsNone(self.word1.translation('is-is'))
-
-    def test_translation_validation(self):
-        word = WordTranslation()
-
-        with self.assertRaises(ValidationError) as ctx:
-            word.clean()
-
-        self.assertEquals('translation-empty', ctx.exception.code)
-
-    def test_translation_str(self):
-        self.assertEquals('color', self.translation1.__str__())
+        self.assertEquals('color', self.word1.__str__())
 
 @override_settings(DRAW_TIME='1 00:00:00')
 class DrawTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
-        self.word = Word.objects.create()
+        self.word = Word.objects.create(added_by=self.user,
+                                        language='en-us',
+                                        word='color')
 
     def test_current_word(self):
         self.assertIsNone(self.user.current_word())
@@ -93,7 +55,7 @@ class DrawTest(TestCase):
         Work.objects.create(draw=draw)
 
         # Create a second word for further testing
-        word2 = Word.objects.create()
+        word2 = Word.objects.create(added_by=self.user)
 
         # The next word should be different from the previous one
         self.assertEquals(word2, self.user.draw_word())
@@ -117,7 +79,9 @@ class DrawTest(TestCase):
         draw.save()
         work.delete()
         # Also create a new word
-        word3 = Word.objects.create()
+        word3 = Word.objects.create(added_by=self.user,
+                                    language='en-gb',
+                                    word='colour')
 
         # A next draw should return the same word in this case
         self.assertEquals(word2, self.user.draw_word())
@@ -151,7 +115,7 @@ class DrawTest(TestCase):
             accepted=True,
             timestamp=timezone.now() - timedelta(days=1))
         Work.objects.create(draw=draw)
-        word = Word.objects.create()
+        word = Word.objects.create(added_by=self.user)
         draw = Draw.objects.create(user=self.user,
                             word=word,
                             accepted=True)
@@ -164,7 +128,7 @@ class DrawTest(TestCase):
                                    word=self.word,
                                    accepted=True)
         Work.objects.create(draw=draw)
-        Word.objects.create()
+        Word.objects.create(added_by=self.user)
 
         self.assertEquals(self.word, self.user.draw_word())
 
@@ -172,7 +136,7 @@ class DrawTest(TestCase):
         # If there is no work, but we are within the time range
         draw = Draw.objects.create(
             user=self.user,
-            word=Word.objects.create(),
+            word=Word.objects.create(added_by=self.user),
             accepted=True,
             timestamp=timezone.now())
         self.assertIsNone(draw.successful())
@@ -206,7 +170,7 @@ class DrawTest(TestCase):
         self.assertEquals([], self.user.successful_words())
 
         draw2 = Draw.objects.create(user=self.user,
-                                   word=Word.objects.create(),
+                                    word=Word.objects.create(added_by=self.user),
                                    accepted=True,
                                    timestamp=timezone.now() - timedelta(days=3))
         Work.objects.create(draw=draw2,
