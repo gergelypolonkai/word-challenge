@@ -194,3 +194,21 @@ class DrawTest(TestCase):
         draw.save()
         self.assertIsNotNone(draw.successful())
         self.assertFalse(draw.successful())
+
+    def test_failed_words(self):
+        self.assertEquals([], self.user.failed_words())
+
+        draw = Draw.objects.create(user=self.user,
+                                   word=self.word,
+                                   accepted=True,
+                                   timestamp=timezone.now() - timedelta(days=2))
+        self.assertEquals([draw.word], self.user.failed_words())
+
+        draw2 = Draw.objects.create(user=self.user,
+                                   word=Word.objects.create(),
+                                   accepted=True,
+                                   timestamp=timezone.now() - timedelta(days=3))
+        Work.objects.create(draw=draw2,
+                            upload_time=timezone.now() - timedelta(days=3))
+
+        self.assertEquals([draw.word], self.user.failed_words())

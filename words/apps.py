@@ -78,6 +78,13 @@ def _draw_word(self):
 
     return word
 
+def _failed_words(self):
+    from .models import Draw
+
+    flt = filter(lambda x: not x.successful(), Draw.objects.filter(user=self))
+
+    return [draw.word for draw in flt]
+
 class WordsConfig(AppConfig):
     name = 'words'
 
@@ -85,3 +92,4 @@ class WordsConfig(AppConfig):
         User.current_word = _current_word
         User.draw_word = _draw_word
         User.last_draw = _last_draw
+        User.failed_words = _failed_words
