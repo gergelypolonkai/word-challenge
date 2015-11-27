@@ -59,6 +59,7 @@ class WordTest(TestCase):
     def test_translation_str(self):
         self.assertEquals('color', self.translation1.__str__())
 
+@override_settings(DRAW_TIME='1 00:00:00')
 class DrawTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
@@ -76,7 +77,6 @@ class DrawTest(TestCase):
         draw.save()
         self.assertEquals(self.word, self.user.current_word())
 
-    @override_settings(DRAW_TIME='1 00:00:00')
     def test_draw_word(self):
         # User has no words yet
         self.assertEquals(self.word, self.user.draw_word())
@@ -168,7 +168,6 @@ class DrawTest(TestCase):
 
         self.assertEquals(self.word, self.user.draw_word())
 
-    @override_settings(DRAW_TIME='1 00:00:00')
     def test_draw_successful(self):
         # If there is no work, but we are within the time range
         draw = Draw.objects.create(
